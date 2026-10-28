@@ -1,0 +1,16 @@
+{
+  "FixedFileInfo": { "FileVersion": {"Major":0,"Minor":2,"Patch":2,"Build":0}, "ProductVersion": {"Major":0,"Minor":2,"Patch":2,"Build":0}, "FileFlagsMask":"3f","FileFlags":"00","FileOS":"040004","FileType":"01","FileSubType":"00" },
+  "StringFileInfo": {
+    "CompanyName": "romulol95",
+    "FileDescription": "ModDoctor Stellar Blade - mod checker (reads only)",
+    "FileVersion": "0.2.2.0",
+    "InternalName": "ModDoctor Stellar Blade",
+    "LegalCopyright": "romulol95 - free tool, Nexus Mods",
+    "OriginalFilename": "ModDoctor Stellar Blade.exe",
+    "ProductName": "ModDoctor Stellar Blade",
+    "ProductVersion": "0.2.2.0"
+  },
+  "VarFileInfo": { "Translation": { "LangID": "0409", "CharsetID": "04B0" } },
+  "IconPath": "icon.ico",
+  "ManifestPath": "app.manifest"
+}

@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ModDoctor Stellar Blade</title>
+<style>
+  :root{--bg:#14161b;--card:#1d2027;--card2:#242832;--txt:#e8eaf0;--mut:#9aa1b2;--acc:#35d0e8;--ok:#4cd68a;--warn:#f2b84b;--bad:#ff6b6b;--line:#2f3441}
+  @media (prefers-color-scheme: light){:root{--bg:#f4f6fa;--card:#fff;--card2:#eef1f7;--txt:#1c2030;--mut:#5d6578;--acc:#0a8aa3;--ok:#1a9b5b;--warn:#b57a00;--bad:#d03a3a;--line:#d9deea}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  h1{font-size:24px;margin:0}
+  h1 small{display:block;font-size:13px;color:var(--mut);font-weight:400}
+  h2{font-size:17px;margin:0 0 10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+  .lang button{background:var(--card2);color:var(--txt);border:1px solid var(--line);padding:6px 12px;cursor:pointer}
+  .lang button:first-child{border-radius:8px 0 0 8px}.lang button:last-child{border-radius:0 8px 8px 0}
+  .lang button.on{background:var(--acc);color:#06222a;border-color:var(--acc);font-weight:600}
+  button.main{background:var(--acc);color:#06222a;border:0;border-radius:8px;padding:9px 15px;font-weight:600;cursor:pointer;font-size:14px}
+  button.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 15px;cursor:pointer;font-size:14px}
+  button:disabled{opacity:.5;cursor:default}
+  .muted{color:var(--mut)} .small{font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .stat{background:var(--card2);border-radius:10px;padding:10px 12px}
+  .stat b{display:block;font-size:22px}
+  .tbl{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:600}
+  .pill.ok{background:rgba(76,214,138,.15);color:var(--ok)}.pill.off{background:rgba(154,161,178,.18);color:var(--mut)}
+  .pill.warn{background:rgba(242,184,75,.18);color:var(--warn)}.pill.bad{background:rgba(255,107,107,.18);color:var(--bad)}
+  .item{border-left:4px solid var(--line);background:var(--card2);border-radius:8px;padding:9px 12px;margin:8px 0}
+  .item.warn{border-color:var(--warn)}.item.bad{border-color:var(--bad)}.item.info{border-color:var(--acc)}.item.ok{border-color:var(--ok)}
+  .item b{display:block}
+  code{background:var(--card2);padding:1px 5px;border-radius:4px;font-size:13px;word-break:break-all}
+  a{color:var(--acc)}
+  ol{padding-left:20px;margin:6px 0}
+  .hide{display:none}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ModDoctor Stellar Blade <small id="tagline"></small></h1>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="lang-pt" onclick="setLang('pt')">Português</button><button id="lang-en" onclick="setLang('en')">English</button>
+    </div>
+  </header>
+
+  <div class="card" id="gameCard"></div>
+  <div id="results" class="hide"></div>
+</div>
+
+<script>
+/* ============================================================================
+   Mod Doctor v0.2.2 - this page is served by ModDoctor.exe on your own PC
+   (127.0.0.1). The program finds the game by itself. Nothing is uploaded.
+   ========================================================================= */
+
+/* ---------- translations ---------- */
+const I18N = {
+  en: {
+    tagline: "Checks your Stellar Blade mods and helps find what is crashing the game",
+    gameTitle: "Game",
+    looking: "Looking for Stellar Blade...",
+    foundAt: "Stellar Blade found at:",
+    mRegistry: "found through Windows' list of installed programs",
+    mSteamlib: "found in your Steam libraries",
+    mShortcut: "found through the game shortcut",
+    mDisk: "found by searching your disks",
+    mLauncher: "found in the Epic Games launcher",
+    mProcess: "found because the game is open",
+    mHistory: "found in the list of programs Windows has run",
+    mPicked: "folder chosen by you",
+    mFlag: "folder given on the command line",
+    crashAt: "Crash reports:",
+    crashNoDir: "no crash report folder on this PC (if the game never crashed, this is normal)",
+    notFoundAuto: "I could not find Stellar Blade by myself. Show me where it is installed: any folder of the game works (the game folder, a folder inside it or the folder above it).",
+    btnRescan: "Read again",
+    btnPick: "Not this one? Show the folder",
+    btnPickFirst: "Show where the game is",
+    picking: "A folder window opened (it may be behind the browser)...",
+    pickInvalid: "That folder does not have Stellar Blade inside. Try again.",
+    serverGone: "ModDoctor Stellar Blade was closed. Open ModDoctor Stellar Blade again.",
+    privacy: "Everything runs on your computer and only reads files. Nothing is changed or uploaded.",
+    scanning: "Reading files...",
+    noUe4ss: "UE4SS is not installed in this game",
+    noUe4ssD: "I found the game but not the folder SB\\Binaries\\Win64\\ue4ss. Without UE4SS, script mods do not load. Pak mods still work.",
+    sumTitle: "Summary",
+    sLua: "Script mods (UE4SS)", sLuaOn: "turned on", sPak: "Pak mods (~mods)", sCns: "CNS outfit files",
+    sErr: "Script errors in log", sCrash: "Crash reports",
+    modsTitle: "Installed mods", colName: "Name", colType: "Type", colStatus: "Status", colInfo: "Details", colNexus: "Nexus",
+    typeLua: "Script mod", typePak: "Pak mod", typeCns: "CNS outfit",
+    on: "On", off: "Off", notLoaded: "Not loaded",
+    searchNexus: "Search",
+    pakNote: "Pak mods can only be listed for now. Checking which files two pak mods both replace is planned.",
+    confTitle: "Possible conflicts and problems",
+    noConf: "No conflicts found in what I can check.",
+    cKey: "Two mods use the same key", cKeyD: "Key %k is used by: %m. Both may react at the same time.",
+    cMissing: "Listed in mods.txt but the folder is missing", cMissingD: "Mod \"%m\" is in mods.txt but there is no folder for it.",
+    cNotLoaded: "Mod has scripts but is not turned on", cNotLoadedD: "\"%m\" has a Scripts folder but is not enabled (no enabled.txt and not 1 in mods.txt), so UE4SS ignores it.",
+    cMany: "Many script mods are active", cManyD: "%n script mods are on. Every script mod adds work inside the game. If you have crashes, try turning some off.",
+    cFtext: "This game build cannot create on-screen text from scripts",
+    cFtextD: "UE4SS reported that it could not find the text constructor (FText). Script mods that draw text/menus on screen can crash the game here. Some mods already disable their on-screen text for this reason.",
+    cCrashU: "Most crashes happen inside UE4SS", cCrashUD: "%a of %b crash reports were inside UE4SS (the script loader). That points to script mods, not to the base game. Try the test with fewer mods below.",
+    cHooks: "Heavy mod detected", cHooksD: "\"%m\" is a large script mod (%k KB of code). Large physics/animation mods are the first suspects when the game gets heavy.",
+    logTitle: "UE4SS log", logNone: "UE4SS.log not found (start the game once with UE4SS installed).",
+    logInfo: "Log from %d, %n lines. Note: UE4SS replaces this file each time the game starts, so a crash report is only matched to this log if you did not restart the game since.",
+    lErrTitle: "Script errors found", lErrNone: "No script errors found in the log.",
+    lLast: "Last lines before the log ends:",
+    crashTitle: "Crash reports", crashNone: "No crash reports found. If the game never crashed, this is normal.",
+    crashRecent: "Showing the %n most recent.",
+    cWhen: "When", cAfter: "Played before crash", cWhat: "What happened", cWhere: "Where",
+    wAccess: "Access violation (the game used invalid memory)", wCpp: "Internal error thrown by a program (C++ exception)",
+    wOther: "Other error",
+    whereUe4ss: "Inside UE4SS (the script loader) - a script mod is probably involved, but the report cannot say which one",
+    whereGame: "Inside the game itself (no script mod in the crash path)",
+    min: "min", sec: "s",
+    diagTitle: "What to do next",
+    d1: "If the game crashes while a script mod is working, test with fewer mods: turn mods off one at a time (set the mod's value to 0 in ue4ss\\Mods\\mods.txt, or delete its enabled.txt), play a few minutes, and see when it stops.",
+    d2: "Crashes inside UE4SS at random times often come from several script mods hooking the game at once. Start by turning off the heaviest mod.",
+    d3: "Before restarting the game after a crash, copy UE4SS.log - it is replaced every launch.",
+    footer: "ModDoctor Stellar Blade v0.2.2 - reads only. The guided test (turn mods off/on for you) is planned for the next version.",
+    keyWord: "key"
+  },
+  pt: {
+    tagline: "Verifica seus mods do Stellar Blade e ajuda a achar o que está travando o jogo",
+    gameTitle: "Jogo",
+    looking: "Procurando o Stellar Blade...",
+    foundAt: "Stellar Blade encontrado em:",
+    mRegistry: "achado pela lista de programas instalados do Windows",
+    mSteamlib: "achado nas bibliotecas do Steam",
+    mShortcut: "achado pelo atalho do jogo",
+    mDisk: "achado procurando nos discos",
+    mLauncher: "achado no launcher da Epic Games",
+    mProcess: "achado porque o jogo está aberto",
+    mHistory: "achado na lista de programas que o Windows já abriu",
+    mPicked: "pasta escolhida por você",
+    mFlag: "pasta informada na linha de comando",
+    crashAt: "Relatórios de crash:",
+    crashNoDir: "nenhuma pasta de relatórios de crash neste PC (se o jogo nunca travou, é normal)",
+    notFoundAuto: "Não consegui achar o Stellar Blade sozinho. Mostre onde ele está instalado: qualquer pasta do jogo serve (a pasta do jogo, uma pasta dentro dela ou a pasta acima).",
+    btnRescan: "Ler de novo",
+    btnPick: "Não é esse? Mostrar a pasta",
+    btnPickFirst: "Mostrar onde está o jogo",
+    picking: "Abriu uma janela de pastas (pode estar atrás do navegador)...",
+    pickInvalid: "Essa pasta não tem o Stellar Blade dentro. Tente de novo.",
+    serverGone: "O ModDoctor Stellar Blade foi fechado. Abra o ModDoctor Stellar Blade de novo.",
+    privacy: "Tudo roda no seu computador e só lê arquivos. Nada é alterado nem enviado.",
+    scanning: "Lendo arquivos...",
+    noUe4ss: "O UE4SS não está instalado neste jogo",
+    noUe4ssD: "Achei o jogo, mas não a pasta SB\\Binaries\\Win64\\ue4ss. Sem o UE4SS, mods de script não carregam. Mods pak continuam funcionando.",
+    sumTitle: "Resumo",
+    sLua: "Mods de script (UE4SS)", sLuaOn: "ligados", sPak: "Mods pak (~mods)", sCns: "Arquivos de traje CNS",
+    sErr: "Erros de script no log", sCrash: "Relatórios de crash",
+    modsTitle: "Mods instalados", colName: "Nome", colType: "Tipo", colStatus: "Estado", colInfo: "Detalhes", colNexus: "Nexus",
+    typeLua: "Mod de script", typePak: "Mod pak", typeCns: "Traje CNS",
+    on: "Ligado", off: "Desligado", notLoaded: "Não carregado",
+    searchNexus: "Buscar",
+    pakNote: "Por enquanto os mods pak só são listados. Ver quais arquivos dois mods pak substituem ao mesmo tempo está nos planos.",
+    confTitle: "Possíveis conflitos e problemas",
+    noConf: "Nenhum conflito encontrado no que consigo verificar.",
+    cKey: "Dois mods usam a mesma tecla", cKeyD: "A tecla %k é usada por: %m. Os dois podem reagir ao mesmo tempo.",
+    cMissing: "Está no mods.txt mas a pasta não existe", cMissingD: "O mod \"%m\" está no mods.txt mas não há pasta para ele.",
+    cNotLoaded: "Mod tem scripts mas não está ligado", cNotLoadedD: "\"%m\" tem pasta Scripts mas não está ativado (sem enabled.txt e sem 1 no mods.txt), então o UE4SS ignora.",
+    cMany: "Muitos mods de script ativos", cManyD: "%n mods de script estão ligados. Cada mod de script adiciona trabalho dentro do jogo. Se você tem crashes, tente desligar alguns.",
+    cFtext: "Este jogo não consegue criar texto na tela por scripts",
+    cFtextD: "O UE4SS avisou que não achou o construtor de texto (FText). Mods de script que desenham texto/menus na tela podem derrubar o jogo aqui. Alguns mods já desligam o texto na tela por isso.",
+    cCrashU: "A maioria dos crashes acontece dentro do UE4SS", cCrashUD: "%a de %b relatórios de crash foram dentro do UE4SS (o carregador de scripts). Isso aponta para mods de script, não para o jogo base. Faça o teste com menos mods abaixo.",
+    cHooks: "Mod pesado detectado", cHooksD: "\"%m\" é um mod de script grande (%k KB de código). Mods grandes de física/animação são os primeiros suspeitos quando o jogo fica pesado.",
+    logTitle: "Log do UE4SS", logNone: "UE4SS.log não encontrado (abra o jogo uma vez com o UE4SS instalado).",
+    logInfo: "Log de %d, %n linhas. Obs.: o UE4SS substitui esse arquivo toda vez que o jogo abre, então um crash só combina com este log se você não reiniciou o jogo desde então.",
+    lErrTitle: "Erros de script encontrados", lErrNone: "Nenhum erro de script encontrado no log.",
+    lLast: "Últimas linhas antes do log terminar:",
+    crashTitle: "Relatórios de crash", crashNone: "Nenhum relatório de crash encontrado. Se o jogo nunca travou, é normal.",
+    crashRecent: "Mostrando os %n mais recentes.",
+    cWhen: "Quando", cAfter: "Tempo jogado até o crash", cWhat: "O que aconteceu", cWhere: "Onde",
+    wAccess: "Violação de acesso (o jogo usou memória inválida)", wCpp: "Erro interno lançado por um programa (exceção C++)",
+    wOther: "Outro erro",
+    whereUe4ss: "Dentro do UE4SS (o carregador de scripts) - provavelmente um mod de script está envolvido, mas o relatório não diz qual",
+    whereGame: "Dentro do próprio jogo (nenhum mod de script no caminho do crash)",
+    min: "min", sec: "s",
+    diagTitle: "O que fazer agora",
+    d1: "Se o jogo trava enquanto um mod de script trabalha, teste com menos mods: desligue um de cada vez (coloque 0 no mod em ue4ss\\Mods\\mods.txt, ou apague o enabled.txt dele), jogue alguns minutos e veja quando para de travar.",
+    d2: "Crashes dentro do UE4SS em horários aleatórios costumam vir de vários mods de script mexendo no jogo ao mesmo tempo. Comece desligando o mod mais pesado.",
+    d3: "Antes de reabrir o jogo depois de um crash, copie o UE4SS.log - ele é substituído a cada abertura.",
+    footer: "ModDoctor Stellar Blade v0.2.2 - só lê. O teste guiado (desligar/ligar mods por você) está planejado para a próxima versão.",
+    keyWord: "tecla"
+  }
+};
+let LANG = (navigator.language || '').toLowerCase().startsWith('pt') ? 'pt' : 'en';
+try { const s = localStorage.getItem('moddoctor-lang'); if (s === 'pt' || s === 'en') LANG = s; } catch (e) {}
+const t = (k, vars) => { let s = (I18N[LANG][k] ?? I18N.en[k] ?? k); if (vars) for (const v in vars) s = s.split('%' + v).join(vars[v]); return s; };
+
+/* ---------- state ---------- */
+let gameDir = null, crashDir = null;
+let lastReport = null, INFO = null, cardMsg = '', serverGone = false;
+
+/* ---------- link to ModDoctor.exe (local server) ---------- */
+const TOKEN = new URLSearchParams(location.search).get('t') || '';
+async function api(path, params = {}, opts) {
+  const r = await fetch(path + '?' + new URLSearchParams({ t: TOKEN, ...params }), opts);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r;
+}
+const join = (a, b) => a ? a + '/' + b : b;
+class RFile {
+  constructor(root, p, size, mtime) { this.root = root; this.p = p; this.size = size; this.lastModified = mtime; }
+  async text() { return (await api('/api/file', { root: this.root, p: this.p })).text(); }
+}
+class RFileHandle {
+  constructor(root, p, meta) { this.kind = 'file'; this.root = root; this.p = p; this.meta = meta; }
+  async getFile() { const m = this.meta || await (await api('/api/stat', { root: this.root, p: this.p })).json(); return new RFile(this.root, this.p, m.size, m.mtime); }
+}
+class RDirHandle {
+  constructor(root, p) { this.kind = 'directory'; this.root = root; this.p = p; }
+  async *entries() {
+    const list = await (await api('/api/list', { root: this.root, p: this.p })).json();
+    for (const e of list) { const p = join(this.p, e.name); yield [e.name, e.kind === 'directory' ? new RDirHandle(this.root, p) : new RFileHandle(this.root, p, e)]; }
+  }
+  async getDirectoryHandle(n) { const p = join(this.p, n); const m = await (await api('/api/stat', { root: this.root, p })).json(); if (m.kind !== 'directory') throw new TypeError('not a folder'); return new RDirHandle(this.root, p); }
+  async getFileHandle(n) { const p = join(this.p, n); const m = await (await api('/api/stat', { root: this.root, p })).json(); if (m.kind !== 'file') throw new TypeError('not a file'); return new RFileHandle(this.root, p, m); }
+}
+
+/* ---------- small helpers ---------- */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const stripAnsi = s => s.replace(/\x1b?\[\d+(?:;\d+)*m/g, '');
+
+async function listDir(dir) {
+  const out = [];
+  try { for await (const [name, h] of dir.entries()) out.push({ name, kind: h.kind, handle: h }); } catch (e) {}
+  return out;
+}
+async function getDir(dir, name) { try { return await dir.getDirectoryHandle(name); } catch (e) { return null; } }
+async function getFile(dir, name) { try { const fh = await dir.getFileHandle(name); return await fh.getFile(); } catch (e) { return null; } }
+async function readText(dir, name) { const f = await getFile(dir, name); return f ? await f.text() : null; }
+async function walkDirs(dir, path, fn, depth = 0) {      // calls fn(name, file) for every file
+  for (const e of await listDir(dir)) {
+    if (e.kind === 'file') { try { await fn(path + e.name, await e.handle.getFile()); } catch (x) {} }
+    else if (depth < 6) await walkDirs(e.handle, path + e.name + '/', fn, depth + 1);
+  }
+}
+async function resolvePath(dir, parts) { let d = dir; for (const p of parts) { d = await getDir(d, p); if (!d) return null; } return d; }
+
+/* ---------- locate folders (the program already gives the game root) ---------- */
+async function findUe4ss(root) { return await resolvePath(root, ['SB', 'Binaries', 'Win64', 'ue4ss']); }
+async function findModsPak(root) { return await resolvePath(root, ['SB', 'Content', 'Paks', '~mods']); }
+
+/* ---------- scanning ---------- */
+function parseModsTxt(text) {
+  const map = {};
+  (text || '').split(/\r?\n/).forEach(l => {
+    const line = l.split(';')[0].trim(); if (!line) return;
+    const m = line.match(/^(.+?)\s*:\s*([01])\s*$/); if (m) map[m[1].trim()] = m[2] === '1';
+  });
+  return map;
+}
+function findKeys(src) {
+  const keys = new Set();
+  let m; const re1 = /RegisterKeyBind\(\s*Key\.([A-Z0-9_]+)/g;
+  while ((m = re1.exec(src))) keys.add(m[1]);
+  const re2 = /\b(?:\w*Key\w*|\w*Tecla\w*|\w*Hotkey\w*)\s*=\s*["']([A-Za-z0-9_]{2,16})["']/g;
+  while ((m = re2.exec(src))) { const k = m[1]; if (/^(F\d{1,2}|NumPad\w+|NUM_\w+|[A-Z]|Insert|Delete|Home|End|PageUp|PageDown|Tab|Backspace|Gamepad_\w+)$/i.test(k)) keys.add(normKey(k)); }
+  return [...keys].map(normKey);
+}
+function normKey(k) { return String(k).toUpperCase().replace(/^NUMPAD(\w+)$/, (a, b) => 'NUM_' + b).replace('NUM_SIX', 'NUM_6').replace('NUM_FIVE', 'NUM_5'); }
+
+async function scanUe4ssMods(ue4ss) {
+  const modsDir = await getDir(ue4ss, 'Mods'); const mods = [];
+  if (!modsDir) return { mods, modsTxt: {} };
+  const modsTxt = parseModsTxt(await readText(modsDir, 'mods.txt'));
+  for (const e of await listDir(modsDir)) {
+    if (e.kind !== 'directory') continue;
+    const m = { name: e.name, type: 'lua', enabled: false, luaFiles: 0, codeKB: 0, keys: [], hasScripts: false };
+    const hasEnabledTxt = !!(await getFile(e.handle, 'enabled.txt'));
+    m.enabled = (e.name in modsTxt) ? modsTxt[e.name] : hasEnabledTxt;
+    if (hasEnabledTxt && !(e.name in modsTxt)) m.enabled = true;
+    const scripts = await getDir(e.handle, 'Scripts');
+    m.hasScripts = !!scripts;
+    if (scripts) {
+      let bytes = 0;
+      await walkDirs(scripts, '', async (name, f) => {
+        if (!/\.lua$/i.test(name)) return;
+        m.luaFiles++; bytes += f.size;
+        if (f.size < 3_000_000) { const src = await f.text(); for (const k of findKeys(src)) if (!m.keys.includes(k)) m.keys.push(k); }
+      });
+      m.codeKB = Math.round(bytes / 1024);
+    }
+    mods.push(m);
+  }
+  return { mods, modsTxt };
+}
+async function scanPaks(root) {
+  const dir = await findModsPak(root); const out = { paks: [], cns: [], found: !!dir };
+  if (!dir) return out;
+  for (const e of await listDir(dir)) {
+    if (e.kind !== 'file') continue;
+    const f = await e.handle.getFile();
+    if (/\.pak$/i.test(e.name)) out.paks.push({ name: e.name, sizeMB: +(f.size / 1048576).toFixed(1) });
+    else if (/\.dekcns\.json$/i.test(e.name)) out.cns.push({ name: e.name });
+  }
+  return out;
+}
+
+/* ---------- log analysis ---------- */
+const ERR_RE = /(attempt to (?:index|call|compare|perform|concatenate|get length)[^\n]*|stack traceback|Error executing|\blua error\b|\[Lua\][^\n]*\bError\b\s*[:\-]|Lua Error|Failed to execute|exception thrown)/i;
+function analyzeLog(text) {
+  const clean = stripAnsi(text); const lines = clean.split(/\r?\n/);
+  const res = { lines: lines.length, date: '', errors: [], errorsByMod: {}, ftext: false, last: lines.filter(l => l.trim()).slice(-8) };
+  const d = clean.match(/\[(\d{4}-\d{2}-\d{2}) [\d:.]+\]/); if (d) res.date = d[1];
+  for (const l of lines) {
+    if (/Failed to find FText::FText/i.test(l)) res.ftext = true;
+    if (ERR_RE.test(l) && !/Applied Preset|FText::FText|expected at least one value/i.test(l)) {
+      let mod = '?';
+      const m1 = l.match(/Mods[\\/]+([^\\/]+)[\\/]+Scripts/i); if (m1) mod = m1[1];
+      else { const m2 = l.match(/\[Lua\]\s*\[([^\]]{2,40})\]/); if (m2) mod = m2[1]; }
+      res.errors.push({ mod, line: l.slice(0, 260) });
+      res.errorsByMod[mod] = (res.errorsByMod[mod] || 0) + 1;
+    }
+  }
+  return res;
+}
+
+/* ---------- crash reports ---------- */
+async function scanCrashes(dir) {
+  const out = [];
+  for (const e of await listDir(dir)) {
+    if (e.kind !== 'directory') continue;
+    const f = await getFile(e.handle, 'CrashContext.runtime-xml'); if (!f) continue;
+    const xml = await f.text();
+    const err = (xml.match(/<ErrorMessage>([\s\S]*?)<\/ErrorMessage>/) || [])[1] || '';
+    const secs = parseInt((xml.match(/<SecondsSinceStart>(\d+)</) || [])[1] || '-1', 10);
+    const threads = xml.match(/<Thread>[\s\S]*?<\/Thread>/g) || [];
+    const gt = threads.find(x => /<ThreadName>GameThread</.test(x)) || xml;
+    const inUe4ss = /\bUE4SS\s+0x/i.test(gt);
+    let kind = 'other';
+    if (/EXCEPTION_ACCESS_VIOLATION/i.test(err)) kind = 'access'; else if (/0xe06d7363/i.test(err)) kind = 'cpp';
+    out.push({ when: f.lastModified, secs, kind, inUe4ss, err: err.replace(/^.*Unhandled Exception:\s*/, '').slice(0, 120) });
+  }
+  out.sort((a, b) => b.when - a.when);
+  return out;
+}
+
+/* ---------- conflicts ---------- */
+function findProblems(mods, modsTxt, log, crashes, hasUe4ss) {
+  const items = [];
+  if (!hasUe4ss) items.push({ lvl: 'info', title: t('noUe4ss'), text: t('noUe4ssD') });
+  const onMods = mods.filter(m => m.enabled);
+  const byKey = {};
+  for (const m of onMods) for (const k of m.keys) (byKey[k] = byKey[k] || []).push(m.name);
+  for (const k in byKey) if (byKey[k].length > 1) items.push({ lvl: 'warn', title: t('cKey'), text: t('cKeyD', { k, m: byKey[k].join(', ') }) });
+  for (const n in modsTxt) if (modsTxt[n] && !mods.find(m => m.name === n)) items.push({ lvl: 'warn', title: t('cMissing'), text: t('cMissingD', { m: n }) });
+  for (const m of mods) if (m.hasScripts && !m.enabled && !/^(shared|Keybinds|BPModLoaderMod|BPML_GenericFunctions)$/i.test(m.name)) items.push({ lvl: 'info', title: t('cNotLoaded'), text: t('cNotLoadedD', { m: m.name }) });
+  const onScripts = onMods.filter(m => m.hasScripts).length;
+  if (onScripts >= 6) items.push({ lvl: 'warn', title: t('cMany'), text: t('cManyD', { n: onScripts }) });
+  if (log && log.ftext) items.push({ lvl: 'warn', title: t('cFtext'), text: t('cFtextD') });
+  if (crashes && crashes.length >= 3) { const u = crashes.filter(c => c.inUe4ss).length; if (u / crashes.length >= 0.6) items.push({ lvl: 'bad', title: t('cCrashU'), text: t('cCrashUD', { a: u, b: crashes.length }) }); }
+  for (const m of onMods) if (m.codeKB >= 250) items.push({ lvl: 'info', title: t('cHooks'), text: t('cHooksD', { m: m.name, k: m.codeKB }) });
+  return items;
+}
+
+/* ---------- rendering ---------- */
+const fmtDate = ms => new Date(ms).toLocaleString(LANG === 'pt' ? 'pt-BR' : 'en-GB');
+const fmtPlayed = s => s < 0 ? '?' : (s >= 120 ? Math.round(s / 60) + ' ' + t('min') : s + ' ' + t('sec'));
+const nexusLink = n => 'https://www.nexusmods.com/games/stellarblade/mods?keyword=' + encodeURIComponent(n);
+const METHOD = { registry: 'mRegistry', steamlib: 'mSteamlib', shortcut: 'mShortcut', disk: 'mDisk', launcher: 'mLauncher', process: 'mProcess', history: 'mHistory', picked: 'mPicked', flag: 'mFlag' };
+
+function renderGameCard() {
+  const C = document.getElementById('gameCard');
+  let h = `<h2>${t('gameTitle')}</h2>`;
+  if (serverGone) h += `<div class="item bad">${t('serverGone')}</div>`;
+  else if (!INFO) h += `<p class="muted">${t('looking')}</p>`;
+  else if (INFO.game) {
+    h += `<div class="item ok"><b>${t('foundAt')}</b><code>${esc(INFO.game)}</code> <span class="small muted">(${t(METHOD[INFO.method] || 'mDisk')})</span></div>`;
+    h += `<p class="small muted">${t('crashAt')} ${INFO.crash ? `<code>${esc(INFO.crash)}</code>` : t('crashNoDir')}</p>`;
+    h += `<div class="row"><button class="main" id="btnRescan" onclick="runScan()">${t('btnRescan')}</button><button class="sec" id="btnPick" onclick="pickOther()">${t('btnPick')}</button></div>`;
+  } else {
+    h += `<div class="item warn">${t('notFoundAuto')}</div><div class="row"><button class="main" id="btnPick" onclick="pickOther()">${t('btnPickFirst')}</button></div>`;
+  }
+  if (cardMsg) h += `<p class="small" style="color:var(--warn)">${esc(t(cardMsg))}</p>`;
+  h += `<p class="small muted">${t('privacy')}</p>`;
+  C.innerHTML = h;
+}
+
+function render(r) {
+  const R = document.getElementById('results'); R.classList.remove('hide');
+  const onCount = r.mods.filter(m => m.enabled).length;
+  let h = '';
+  h += `<div class="card"><h2>${t('sumTitle')}</h2><div class="grid">
+    <div class="stat"><b>${r.mods.length}</b>${t('sLua')} (${onCount} ${t('sLuaOn')})</div>
+    <div class="stat"><b>${r.pak.paks.length}</b>${t('sPak')}</div>
+    <div class="stat"><b>${r.pak.cns.length}</b>${t('sCns')}</div>
+    <div class="stat"><b>${r.log ? r.log.errors.length : '-'}</b>${t('sErr')}</div>
+    <div class="stat"><b>${r.crashes ? r.crashes.length : '0'}</b>${t('sCrash')}</div></div></div>`;
+
+  h += `<div class="card"><h2>${t('confTitle')}</h2>`;
+  h += r.problems.length ? r.problems.map(p => `<div class="item ${p.lvl}"><b>${esc(p.title)}</b>${esc(p.text)}</div>`).join('') : `<div class="item ok">${t('noConf')}</div>`;
+  h += `</div>`;
+
+  h += `<div class="card"><h2>${t('modsTitle')}</h2><div class="tbl"><table><tr><th>${t('colName')}</th><th>${t('colType')}</th><th>${t('colStatus')}</th><th>${t('colInfo')}</th><th>${t('colNexus')}</th></tr>`;
+  for (const m of r.mods) {
+    const status = m.enabled ? `<span class="pill ok">${t('on')}</span>` : (m.hasScripts ? `<span class="pill off">${t('notLoaded')}</span>` : `<span class="pill off">${t('off')}</span>`);
+    const info = `${m.luaFiles} lua, ${m.codeKB} KB` + (m.keys.length ? ` · ${t('keyWord')}: ${esc(m.keys.join(', '))}` : '');
+    h += `<tr><td><b>${esc(m.name)}</b></td><td>${t('typeLua')}</td><td>${status}</td><td class="small muted">${info}</td><td><a target="_blank" rel="noopener" href="${nexusLink(m.name)}">${t('searchNexus')}</a></td></tr>`;
+  }
+  for (const p of r.pak.paks) h += `<tr><td><b>${esc(p.name)}</b></td><td>${t('typePak')}</td><td><span class="pill ok">${t('on')}</span></td><td class="small muted">${p.sizeMB} MB</td><td><a target="_blank" rel="noopener" href="${nexusLink(p.name.replace(/(_P)?\.pak$/i, ''))}">${t('searchNexus')}</a></td></tr>`;
+  h += `</table></div>`;
+  if (r.pak.paks.length || r.pak.found) h += `<p class="small muted">${t('pakNote')}</p>`;
+  if (r.pak.cns.length) h += `<p class="small muted">${t('sCns')}: ${r.pak.cns.length}</p>`;
+  h += `</div>`;
+
+  h += `<div class="card"><h2>${t('logTitle')}</h2>`;
+  if (!r.log) h += `<p class="muted">${t('logNone')}</p>`;
+  else {
+    h += `<p class="small muted">${t('logInfo', { d: r.log.date || '?', n: r.log.lines })}</p>`;
+    if (!r.log.errors.length) h += `<div class="item ok">${t('lErrNone')}</div>`;
+    else {
+      h += `<h2 style="font-size:15px">${t('lErrTitle')}</h2>`;
+      for (const mod in r.log.errorsByMod) h += `<div class="item bad"><b>${esc(mod)} - ${r.log.errorsByMod[mod]}x</b><span class="small muted">${esc((r.log.errors.find(e => e.mod === mod) || {}).line || '')}</span></div>`;
+    }
+    h += `<p class="small muted" style="margin-top:12px">${t('lLast')}</p><pre class="small" style="white-space:pre-wrap;background:var(--card2);padding:8px;border-radius:8px;overflow:auto">${esc(r.log.last.join('\n'))}</pre>`;
+  }
+  h += `</div>`;
+
+  h += `<div class="card"><h2>${t('crashTitle')}</h2>`;
+  if (!r.crashes || !r.crashes.length) h += `<div class="item ok">${t('crashNone')}</div>`;
+  else {
+    const shown = r.crashes.slice(0, 10);
+    if (r.crashes.length > shown.length) h += `<p class="small muted">${t('crashRecent', { n: shown.length })}</p>`;
+    h += `<div class="tbl"><table><tr><th>${t('cWhen')}</th><th>${t('cAfter')}</th><th>${t('cWhat')}</th><th>${t('cWhere')}</th></tr>`;
+    for (const c of shown) {
+      const what = c.kind === 'access' ? t('wAccess') : c.kind === 'cpp' ? t('wCpp') : t('wOther');
+      h += `<tr><td class="small">${fmtDate(c.when)}</td><td>${fmtPlayed(c.secs)}</td><td class="small">${what}</td><td class="small">${c.inUe4ss ? `<span class="pill warn">UE4SS</span> ${t('whereUe4ss')}` : t('whereGame')}</td></tr>`;
+    }
+    h += `</table></div>`;
+  }
+  h += `</div>`;
+
+  h += `<div class="card"><h2>${t('diagTitle')}</h2><ol><li>${t('d1')}</li><li>${t('d2')}</li><li>${t('d3')}</li></ol></div>`;
+  h += `<p class="small muted">${t('footer')}</p>`;
+  R.innerHTML = h;
+}
+
+/* ---------- main flow ---------- */
+async function runScan() {
+  if (!gameDir) return;
+  const R = document.getElementById('results'); R.classList.remove('hide'); R.innerHTML = `<div class="card muted">${t('scanning')}</div>`;
+  try {
+    const ue4ss = await findUe4ss(gameDir);
+    const { mods, modsTxt } = ue4ss ? await scanUe4ssMods(ue4ss) : { mods: [], modsTxt: {} };
+    const pak = await scanPaks(gameDir);
+    const logText = ue4ss ? await readText(ue4ss, 'UE4SS.log') : null;
+    const log = logText ? analyzeLog(logText) : null;
+    const crashes = crashDir ? await scanCrashes(crashDir) : null;
+    const problems = findProblems(mods, modsTxt, log, crashes, !!ue4ss);
+    lastReport = { mods, pak, log, crashes, problems };
+    render(lastReport);
+  } catch (e) { console.error(e); await checkServer(); }
+}
+async function loadInfo() {
+  INFO = await (await api('/api/info')).json();
+  gameDir = INFO.game ? new RDirHandle('game', '') : null;
+  crashDir = INFO.crash ? new RDirHandle('crash', '') : null;
+  renderGameCard();
+  if (gameDir) await runScan(); else document.getElementById('results').classList.add('hide');
+}
+async function pickOther() {
+  cardMsg = 'picking'; renderGameCard();
+  document.getElementById('btnPick').disabled = true;
+  try {
+    const r = await (await api('/api/pick', {}, { method: 'POST' })).json();
+    cardMsg = r.picked && !r.valid ? 'pickInvalid' : '';
+    await loadInfo();
+  } catch (e) { await checkServer(); }
+}
+async function checkServer() {
+  try { await api('/api/ping'); } catch (e) { serverGone = true; document.getElementById('results').classList.add('hide'); }
+  renderGameCard();
+}
+
+function applyLang() {
+  document.documentElement.lang = LANG === 'pt' ? 'pt-BR' : 'en';
+  document.getElementById('lang-pt').classList.toggle('on', LANG === 'pt');
+  document.getElementById('lang-en').classList.toggle('on', LANG === 'en');
+  document.getElementById('tagline').textContent = t('tagline');
+  renderGameCard();
+}
+async function setLang(l) {
+  LANG = l; try { localStorage.setItem('moddoctor-lang', l); } catch (e) {}
+  applyLang();
+  if (lastReport) await runScan();   // problems are re-generated in the new language
+}
+/* inside the program's own window, web links open in the normal browser */
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('a[href^="http"]');
+  if (a && typeof window.mdOpen === 'function') { e.preventDefault(); window.mdOpen(a.href); }
+});
+applyLang();
+loadInfo().catch(checkServer);
+setInterval(() => { if (!serverGone) api('/api/ping').catch(checkServer); }, 15000);
+
+/* test hook (used by automated tests only) */
+window.__md = { runScan, get report() { return lastReport; }, get info() { return INFO; }, setLang };
+</script>
+</body>
+</html>
