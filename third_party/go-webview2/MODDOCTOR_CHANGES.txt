@@ -1,0 +1,3 @@
+# Copy of github.com/jchv/go-webview2 (MIT License, see LICENSE).
+# ModDoctor change: webviewloader/module.go no longer loads WebView2Loader.dll from memory;
+# the DLL must be next to the program. The embedded DLL copies were removed.
